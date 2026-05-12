@@ -1,0 +1,105 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2869
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red224\green224\blue224;\red25\green29\blue39;}
+{\*\expandedcolortbl;;\csgenericrgb\c87761\c87761\c87761;\csgenericrgb\c9839\c11388\c15260\c95000;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww26040\viewh16440\viewkind0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf2 \cb3 \CocoaLigature0 ```python\
+import os\
+import json\
+\
+IMAGES_DIR = "images"\
+VALID_EXTS = \{".jpg", ".jpeg", ".png", ".webp", ".gif"\}\
+\
+products = []\
+if os.path.exists(IMAGES_DIR):\
+    for filename in sorted(os.listdir(IMAGES_DIR)):\
+        if os.path.splitext(filename)[1].lower() in VALID_EXTS:\
+            parts = filename.rsplit("-", 1)\
+            if len(parts) == 2:\
+                category = parts[0].strip()\
+                piece_name = parts[1].rsplit(".", 1)[0].replace("-", " ").title()\
+                products.append(\{\
+                    "id": len(products) + 1,\
+                    "name": piece_name,\
+                    "category": category,\
+                    "image": f"\{IMAGES_DIR\}/\{filename\}",\
+                    "desc": "Cr\'e9ation artisanale unique par Dana",\
+                    "price": "Sur demande"\
+                \})\
+else:\
+    print("\uc0\u9888 \u65039  Folder 'images/' not found. Creating empty array.")\
+\
+js_code = """// \uc0\u55357 \u56550  Product Data - Auto-generated from images/\
+const products = PRODUCTS_PLACEHOLDER;\
+\
+const grid = document.getElementById('product-grid');\
+const filterBtns = document.querySelectorAll('.filter-btn');\
+const modal = document.getElementById('product-modal');\
+const modalImg = document.getElementById('modal-img');\
+const modalTitle = document.getElementById('modal-title');\
+const modalDesc = document.getElementById('modal-desc');\
+const modalPrice = document.getElementById('modal-price');\
+const closeModal = document.querySelector('.close-modal');\
+\
+function renderProducts(filter = 'all') \{\
+  grid.innerHTML = '';\
+  const filtered = filter === 'all' ? products : products.filter(p => p.category === filter);\
+  filtered.forEach(product => \{\
+    const card = document.createElement('div');\
+    card.className = 'product-card';\
+    card.innerHTML = `\
+      <img src="$\{product.image\}" alt="$\{product.name\}" loading="lazy">\
+      <div class="product-info">\
+        <span class="category">$\{product.category\}</span>\
+        <h3>$\{product.name\}</h3>\
+        <p class="price">$\{product.price\}</p>\
+      </div>\
+    `;\
+    card.addEventListener('click', () => openModal(product));\
+    grid.appendChild(card);\
+  \});\
+\}\
+\
+function openModal(product) \{\
+  modalImg.src = product.image;\
+  modalImg.alt = product.name;\
+  modalTitle.textContent = product.name;\
+  modalDesc.textContent = product.desc;\
+  modalPrice.textContent = product.price;\
+  modal.style.display = 'flex';\
+\}\
+\
+closeModal.addEventListener('click', () => modal.style.display = 'none');\
+modal.addEventListener('click', (e) => \{\
+  if (e.target === modal) modal.style.display = 'none';\
+\});\
+\
+filterBtns.forEach(btn => \{\
+  btn.addEventListener('click', () => \{\
+    filterBtns.forEach(b => b.classList.remove('active'));\
+    btn.classList.add('active');\
+    renderProducts(btn.dataset.filter);\
+  \});\
+\});\
+\
+document.querySelectorAll('a[href^="#"]').forEach(anchor => \{\
+  anchor.addEventListener('click', function(e) \{\
+    e.preventDefault();\
+    document.querySelector(this.getAttribute('href')).scrollIntoView(\{ behavior: 'smooth' \});\
+  \});\
+\});\
+\
+renderProducts();\
+"""\
+\
+final_js = js_code.replace("PRODUCTS_PLACEHOLDER", json.dumps(products, indent=2, ensure_ascii=False))\
+\
+with open("script.js", "w", encoding="utf-8") as f:\
+    f.write(final_js)\
+\
+print(f"\uc0\u9989  script.js generated with \{len(products)\} products.")\
+print("\uc0\u55357 \u56393  Run 'python3 -m http.server 8000' to preview locally.")\
+```\
+}
