@@ -1,42 +1,39 @@
 import os
 import json
 from mlx_vlm import load, generate
-from mlx_vlm.utils import load_config
+from PIL import Image
 
-# 1. Setup paths
 MODEL_PATH = "/Users/alexandrudumitru/.mtplx/models/Youssofal--Qwen3.6-27B-MTPLX-Optimized-Quality"
 IMAGE_DIR = "images"
 OUTPUT_DATA = "products.json"
 
-# 2. Load the model onto your M5 Pro
 print("Initializing Qwen 3.6...")
 model, processor = load(MODEL_PATH)
-config = load_config(MODEL_PATH)
-
 catalog = []
 
-# 3. Dynamic Scanning
-print(f"Scanning folder: {IMAGE_DIR}")
-for filename in os.listdir(IMAGE_DIR):
+for i, filename in os.listdir(IMAGE_DIR):
     if filename.endswith((".jpg", ".jpeg", ".png")):
         path = os.path.join(IMAGE_DIR, filename)
+        category = filename.split('-')[0]
         
-        # We use your naming convention to help the model
-        category = filename.split('-')[0] 
-        
-        prompt = f"This is an artisan piece by Dana in Paris. It's in the category '{category}'. Describe its style and material for a shop listing."
-        
-        description = generate(model, processor, prompt, [path], verbose=False)
-        
-        catalog.append({
-            "filename": filename,
-            "category": category,
-            "description": description.strip()
-        })
-        print(f"Done: {filename}")
+        try:
+            # 1. Strip metadata to fix the 0xb9 error
+            raw_image = Image.open(path).convert("RGB")
+            prompt = f"USER: <|vision_start|><|image_pad|><|vision_end|>Describe this {category} for Dana's shop.\nASSISTANT:"
 
-# 4. Save the result
-with open(OUTPUT_DATA, "w") as f:
+            # 2. Disable streaming (verbose=False) and set temp=0.0 to stop crashes
+            result = generate(model, processor, prompt, [raw_image], temp=0.0, max_tokens=300, verbose=False)
+            
+            catalog.append({
+                "id": i + 1,
+                "filename": filename, 
+                "category": category, 
+                "description": result.text.strip()
+            })
+            print(f"Done: {filename}")
+        except Exception as e:
+            print(f"Skipping {filename} due to model error: {e}")
+
+with open(OUTPUT_DATA, "w", encoding='utf-8') as f:
     json.dump(catalog, f, indent=4)
-
-print(f"\nSuccess! Your dynamic data is saved in {OUTPUT_DATA}")
+print(f"Success! Data saved in {OUTPUT_DATA}")
